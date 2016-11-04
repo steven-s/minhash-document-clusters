@@ -28,3 +28,4 @@ class MinHashDocument(text: String, signatureLength: Int = 200, shingleLength: I
     shingles.intersect(otherDocument.shingles).size / shingles.union(otherDocument.shingles).size
   }
 }
+
