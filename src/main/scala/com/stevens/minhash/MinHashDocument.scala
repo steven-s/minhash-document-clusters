@@ -25,7 +25,7 @@ class MinHashDocument(text: String, signatureLength: Int = 200, shingleLength: I
   }
 
   def shingleSimilarity(otherDocument: MinHashDocument): Double = {
-    shingles.intersect(otherDocument.shingles).size / shingles.union(otherDocument.shingles).size
+    shingles.intersect(otherDocument.shingles).size.toDouble / shingles.union(otherDocument.shingles).size.toDouble
   }
 }
 

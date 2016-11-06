@@ -3,7 +3,6 @@ package com.stevens.transform
 import java.io.File
 import java.net.URI
 import scala.io.Source
-import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs._
 import org.apache.hadoop.io._
@@ -18,13 +17,13 @@ object TextToSequence extends App {
     val conf = new Configuration()
     val fs = FileSystem.get(URI.create(outputDirectory), conf)
     val path = new Path(outputDirectory)
-    writer = SequenceFile.createWriter(fs, conf, path, classOf[ImmutableBytesWritable], classOf[Text])
+    writer = SequenceFile.createWriter(fs, conf, path, classOf[Text], classOf[Text])
 
     sourceDirectory.listFiles.filter(_.getName.endsWith(".txt")).foreach {
       file: File => {
         val text = Source.fromFile(file).mkString
-        val sha = DigestUtils.sha1Hex(text)
-        writer.append(new ImmutableBytesWritable(sha.getBytes), new Text(text))
+        val key = file.getName
+        writer.append(new Text(key), new Text(text))
       }
     }
   }

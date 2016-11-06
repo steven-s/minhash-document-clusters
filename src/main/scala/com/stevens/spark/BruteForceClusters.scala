@@ -16,20 +16,23 @@ object BruteForceClusters extends App {
   val conf = new SparkConf().setAppName("Brute Force Document Clusters")
   val sc = new SparkContext(conf)
 
-  val corpusRDD = sc.sequenceFile(corpusSequence, classOf[ImmutableBytesWritable], classOf[Text])
-    .map { case(id, text) => (new String(id.get), text.toString) }
+  val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
+    .map { case(id, text) => (id.toString, text.toString) }
 
-  val initialClustersRDD = corpusRDD.cartesian(corpusRDD).map { case(k, v) => (k, Set(v)) }.reduceByKey(_ ++ _)
+  val candidatePairsRDD = corpusRDD.cartesian(corpusRDD).filter { case((k1, v1), (k2, v2)) => !k1.equalsIgnoreCase(k2) }
+  val reducedPairsRDD = candidatePairsRDD.map { case((k1, v1), (k2, v2)) => (k1, Set((k2, v2))) }.reduceByKey(_ ++ _)
+  val comparisonPairsRDD = corpusRDD.join(reducedPairsRDD)
 
-  val matchingClustersRDD = initialClustersRDD.map { case((keyId, keyText), v) =>
-    val similarDocs = v.map { case(compareId, compareText) =>
-      val minHashKey = new MinHashDocument(keyText)
-      val minHashCompare = new MinHashDocument(compareText)
-      (compareId, minHashKey.shingleSimilarity(minHashCompare))
-    }.filter { case(id, score) => score > 0.8D }.map { case(id, score) => id }
-    (keyId, similarDocs.toSet)
+  val matchingClustersRDD = comparisonPairsRDD.map { case(k1, (text, possibleMatches)) =>
+    val minHash = new MinHashDocument(text)
+    val matchingDocs = possibleMatches.map { case(k2, otherText) =>
+      val otherMinHash = new MinHashDocument(otherText)
+      (k2, minHash.shingleSimilarity(otherMinHash))
+    }.filter { case(k2, score) => score > 0.8D }.map { case(k2, score) => k2 }
+    matchingDocs.toSet + k1
   }
-  
-  matchingClustersRDD.map { case(key, similarDocs) => key + "\t[" + similarDocs.mkString(",") + "]" }.saveAsTextFile(outputLocation)
+
+  val reducedClustersRDD = matchingClustersRDD.map(cluster => (cluster.hashCode, cluster)).reduceByKey(_ ++ _)
+  reducedClustersRDD.map { case(clusterId, cluster) => cluster.mkString(" ") }.saveAsTextFile(outputLocation)
 }
 
