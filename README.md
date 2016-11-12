@@ -10,12 +10,13 @@ The LSH clustering is also executed as a spark job. It calculates MinHashes for 
 Locality Sensitive Hashing (LSH) to generate candidate pairs which can then be tested for similarity.
 
 # Locality Sensitive-what now
-More information on this subject can be found in Chapter 3 of the Stanford (Mining of Massive Datasets)[http://www.mmds.org] text.
+More information on this subject can be found in Chapter 3 of the Stanford (Mining of Massive Datasets)[1] text.
 
 # Where to find the data used when developing this project?
 I found a collection of short BBC articles in plain text at this site:
 
 http://mlg.ucd.ie/datasets/bbc.html
 
-There are surprisingly already duplicates present in the different corpora
+There are surprisingly already duplicates present in the different corpora.
 
+[1]: http://www.mmds.org
