@@ -13,19 +13,26 @@ object TextToSequence extends App {
   val outputDirectory = args(1)
   var writer: SequenceFile.Writer = null
 
+  println(s"Writing text files from dir $sourceDirectory to sequence file $outputDirectory")
+
   try {
     val conf = new Configuration()
     val fs = FileSystem.get(URI.create(outputDirectory), conf)
     val path = new Path(outputDirectory)
     writer = SequenceFile.createWriter(fs, conf, path, classOf[Text], classOf[Text])
+    val textFiles = sourceDirectory.listFiles.filter(_.getName.endsWith(".txt"))
+    
+    println(s"Found ${textFiles.length} files")
 
-    sourceDirectory.listFiles.filter(_.getName.endsWith(".txt")).foreach {
+    textFiles.foreach {
       file: File => {
         val text = Source.fromFile(file).mkString
         val key = file.getName
         writer.append(new Text(key), new Text(text))
       }
     }
+
+    println("Done")
   }
   finally {
     IOUtils.closeStream(writer)

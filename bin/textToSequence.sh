@@ -5,6 +5,6 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
-scala -cp target/minhash-document-clusters-1.0-SNAPSHOT.jar com.stevens.transform.TextToSequence $1 $2
+java -cp target/minhash-document-clusters-1.0-SNAPSHOT.jar com.stevens.transform.TextToSequence $1 $2
 
 exit 0
