@@ -30,9 +30,26 @@ object LSHClusters extends App {
     (id, minHash.signature)
   }
 
-  val bandRDD = minHashRDD.flatMap { case(id, signature) =>
-    signature.grouped(rows).zipWithIndex.map { case(band, bandIndex) => ((bandIndex, band.hashCode), Set(id)) }
+  val bucketsRDD = minHashRDD.flatMap { case(id, signature) =>
+    signature.grouped(rows).zipWithIndex.map { case(band, bandIndex) => 
+      ((bandIndex, band.toList.hashCode), Set((id, signature))) 
+    }
   }.reduceByKey(_ ++ _)
 
-  bandRDD.map { case((bandIndex, bandHash), ids) => s"($bandIndex, $bandHash): ${ids.mkString(" ")}" }.saveAsTextFile(outputLocation)
+  val candidatePairsRDD = bucketsRDD.flatMap { case((bandIndex, bucketId), cluster) => 
+    cluster.flatMap(doc1 => cluster.map( doc2 => (doc1, doc2))).map(pair => (pair, 1))
+  }.reduceByKey(_ + _).map { case(pair, count) => pair }
+
+  // Now we can go back to Brute Force to do the comparisons
+  val reducedPairsRDD = candidatePairsRDD.map { case(doc1, doc2) => (doc1, Set(doc2)) }.reduceByKey(_ ++ _)
+ 
+  val matchingClustersRDD = reducedPairsRDD.map { case((k1, sig1), possibleMatches) =>
+    val matches = possibleMatches.map { case(k2, sig2) =>
+      (k2, MinHashDocument.minHashSimilarity(sig1, sig2))
+    }.filter { case(k2, score) => score > 0.8D }.map { case(k2, score) => k2 }
+    matches.toSet + k1
+  }
+
+  val reducedClustersRDD = matchingClustersRDD.map(cluster => (cluster.hashCode, cluster)).reduceByKey(_ ++ _)
+  reducedClustersRDD.map { case(clusterId, cluster) => cluster.mkString(" ") }.saveAsTextFile(outputLocation)
 }

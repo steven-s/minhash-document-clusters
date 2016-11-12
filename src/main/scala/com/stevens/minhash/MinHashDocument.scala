@@ -29,3 +29,9 @@ class MinHashDocument(text: String, signatureLength: Int = 100, shingleLength: I
   }
 }
 
+object MinHashDocument {
+  def minHashSimilarity(hash1: Set[String], hash2: Set[String]): Double = {
+    hash1.intersect(hash2).size.toDouble / hash1.union(hash2).size.toDouble
+  }
+}
+
