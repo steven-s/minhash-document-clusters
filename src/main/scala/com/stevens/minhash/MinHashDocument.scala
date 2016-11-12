@@ -4,7 +4,7 @@ import util.Random
 import java.nio.charset.StandardCharsets
 import com.google.common.hash._
 
-class MinHashDocument(text: String, signatureLength: Int = 200, shingleLength: Int = 5, seed: Int = 5) {
+class MinHashDocument(text: String, signatureLength: Int = 100, shingleLength: Int = 5, seed: Int = 5) {
   private val seededRandom: Random = new Random(seed)
   lazy val shingles: Set[String] = createShingles().toSet
   lazy val signature: Set[String] = createMinhashSignature()
@@ -15,7 +15,7 @@ class MinHashDocument(text: String, signatureLength: Int = 200, shingleLength: I
 
   private def createMinhashSignature(): Set[String] = {
     generateRandomSeeds().map { randomSeed => 
-      val hashFunction: HashFunction = Hashing.murmur3_128(randomSeed)
+      val hashFunction: HashFunction = Hashing.murmur3_32(randomSeed)
       createShingles().map(shingle => hashFunction.hashString(shingle, StandardCharsets.UTF_8).toString).min
     }.toSet
   }

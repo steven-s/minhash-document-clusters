@@ -28,7 +28,7 @@ object BruteForceClusters extends App {
     val matchingDocs = possibleMatches.map { case(k2, otherText) =>
       val otherMinHash = new MinHashDocument(otherText)
       (k2, minHash.shingleSimilarity(otherMinHash))
-    }.filter { case(k2, score) => score > 0.8D }.map { case(k2, score) => k2 }
+    }.filter { case(k2, score) => score > 0.8F }.map { case(k2, score) => k2 }
     matchingDocs.toSet + k1
   }
 
