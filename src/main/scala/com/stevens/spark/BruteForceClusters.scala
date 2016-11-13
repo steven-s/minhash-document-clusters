@@ -16,18 +16,27 @@ object BruteForceClusters extends App {
   val conf = new SparkConf().setAppName("Brute Force Document Clusters")
   val sc = new SparkContext(conf)
 
+  sc.setLogLevel("WARN")
+
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 
-  val candidatePairsRDD = corpusRDD.cartesian(corpusRDD).filter { case((k1, v1), (k2, v2)) => !k1.equalsIgnoreCase(k2) }
-  val reducedPairsRDD = candidatePairsRDD.map { case((k1, v1), (k2, v2)) => (k1, Set((k2, v2))) }.reduceByKey(_ ++ _)
-  val comparisonPairsRDD = corpusRDD.join(reducedPairsRDD)
-
-  val matchingClustersRDD = comparisonPairsRDD.map { case(k1, (text, possibleMatches)) =>
+  val minHashCorpusRDD = corpusRDD.map { case(id, text) =>
     val minHash = new MinHashDocument(text)
-    val matchingDocs = possibleMatches.map { case(k2, otherText) =>
-      val otherMinHash = new MinHashDocument(otherText)
-      (k2, minHash.shingleSimilarity(otherMinHash))
+    (id, minHash.signature)
+  }
+
+  val candidatePairsRDD = minHashCorpusRDD.cartesian(minHashCorpusRDD)
+    .filter { case((k1, sig1), (k2, sig2)) => !k1.equalsIgnoreCase(k2) }.cache()
+
+  val comparisonCount = candidatePairsRDD.count()
+  println(s"Number of comparisons: $comparisonCount")
+
+  val reducedPairsRDD = candidatePairsRDD.map { case((k1, v1), (k2, v2)) => ((k1, v1), Set((k2, v2))) }.reduceByKey(_ ++ _)
+
+  val matchingClustersRDD = reducedPairsRDD.map { case((k1, sig1), possibleMatches) =>
+    val matchingDocs = possibleMatches.map { case(k2, sig2) =>
+      (k2, MinHashDocument.minHashSimilarity(sig1, sig2))
     }.filter { case(k2, score) => score > 0.8D }.map { case(k2, score) => k2 }
     matchingDocs.toSet + k1
   }

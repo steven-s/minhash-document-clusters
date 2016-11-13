@@ -27,9 +27,17 @@ class MinHashDocument(text: String, signatureLength: Int = 100, shingleLength: I
   def shingleSimilarity(otherDocument: MinHashDocument): Double = {
     shingles.intersect(otherDocument.shingles).size.toDouble / shingles.union(otherDocument.shingles).size.toDouble
   }
+
+  def minHashSimilarity(otherDocument: MinHashDocument): Double = {
+    signature.intersect(otherDocument.signature).size.toDouble / signature.union(otherDocument.signature).size.toDouble
+  }
 }
 
 object MinHashDocument {
+  def shingleSimilarity(shingles1: Set[String], shingles2: Set[String]): Double = {
+    shingles1.intersect(shingles2).size.toDouble / shingles1.union(shingles2).size.toDouble
+  }
+  
   def minHashSimilarity(hash1: Set[String], hash2: Set[String]): Double = {
     hash1.intersect(hash2).size.toDouble / hash1.union(hash2).size.toDouble
   }

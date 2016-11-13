@@ -22,6 +22,8 @@ object LSHClusters extends App {
   val conf = new SparkConf().setAppName("LSH Document Clusters")
   val sc = new SparkContext(conf)
 
+  sc.setLogLevel("WARN")
+
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 
@@ -38,7 +40,10 @@ object LSHClusters extends App {
 
   val candidatePairsRDD = bucketsRDD.flatMap { case((bandIndex, bucketId), cluster) => 
     cluster.flatMap(doc1 => cluster.map( doc2 => (doc1, doc2))).map(pair => (pair, 1))
-  }.reduceByKey(_ + _).map { case(pair, count) => pair }
+  }.reduceByKey(_ + _).map { case(pair, count) => pair }.cache()
+
+  val comparisonCount = candidatePairsRDD.count()
+  println(s"Number of comparisons: $comparisonCount")
 
   // Now we can go back to Brute Force to do the comparisons
   val reducedPairsRDD = candidatePairsRDD.map { case(doc1, doc2) => (doc1, Set(doc2)) }.reduceByKey(_ ++ _)
