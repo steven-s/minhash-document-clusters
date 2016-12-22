@@ -6,7 +6,6 @@ import scala.io.Source
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs._
 import org.apache.hadoop.io._
-import org.apache.hadoop.hbase.io._
 
 object TextToSequence extends App {
   val sourceDirectory = new File(args(0))

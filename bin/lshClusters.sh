@@ -5,6 +5,6 @@ if [ $# -ne 4 ]; then
     exit 1
 fi
 
-spark-submit --class com.stevens.spark.LSHClusters target/minhash-document-clusters-1.0-SNAPSHOT.jar $1 $2 $3 $4
+spark-submit --master local[*] --class com.stevens.spark.LSHClusters target/minhash-document-clusters-1.0-SNAPSHOT.jar $1 $2 $3 $4
 
 exit 0

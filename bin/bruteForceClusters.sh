@@ -5,6 +5,6 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
-spark-submit --class com.stevens.spark.BruteForceClusters target/minhash-document-clusters-1.0-SNAPSHOT.jar $1  $2
+spark-submit --master local[*] --class com.stevens.spark.BruteForceClusters target/minhash-document-clusters-1.0-SNAPSHOT.jar $1  $2
 
 exit 0

@@ -5,7 +5,6 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 
 import org.apache.hadoop.io._
-import org.apache.hadoop.hbase.io._
 
 import com.stevens.minhash._
 
@@ -23,7 +22,7 @@ object BruteForceClusters extends App {
 
   val minHashCorpusRDD = corpusRDD.map { case(id, text) =>
     val minHash = new MinHashDocument(text)
-    (id, minHash.signature)
+    (id, minHash.signature.toSet)
   }
 
   val candidatePairsRDD = minHashCorpusRDD.cartesian(minHashCorpusRDD)
@@ -36,12 +35,14 @@ object BruteForceClusters extends App {
 
   val matchingClustersRDD = reducedPairsRDD.map { case((k1, sig1), possibleMatches) =>
     val matchingDocs = possibleMatches.map { case(k2, sig2) =>
-      (k2, MinHashDocument.minHashSimilarity(sig1, sig2))
+      (k2, MinHashDocument.jaccardSimilarity(sig1, sig2))
     }.filter { case(k2, score) => score > 0.8D }.map { case(k2, score) => k2 }
     matchingDocs.toSet + k1
   }
 
   val reducedClustersRDD = matchingClustersRDD.map(cluster => (cluster.hashCode, cluster)).reduceByKey(_ ++ _)
   reducedClustersRDD.map { case(clusterId, cluster) => cluster.mkString(" ") }.saveAsTextFile(outputLocation)
+
+  sc.stop()
 }
 

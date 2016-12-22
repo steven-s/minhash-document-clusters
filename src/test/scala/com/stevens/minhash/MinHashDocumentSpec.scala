@@ -52,8 +52,7 @@ TimeWarner is to restate its accounts as part of efforts to resolve an inquiry i
   it should "generate a minhash signature of correct length" in {
     val minHash = new MinHashDocument(veryShortDocument, shingleLength=2, signatureLength=100)
     assert(minHash.signature != null)
-    assert(!minHash.signature.isEmpty)
-    assert(minHash.signature.size == 100)
+    assert(minHash.signature.length == 100)
   }
 }
 
