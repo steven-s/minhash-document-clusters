@@ -9,24 +9,27 @@ import org.apache.hadoop.io._
 import com.stevens.minhash._
 
 object ShingleCounter extends App {
-  val corpusSequence = args(0)
-  val outputLocation = args(1)
+  val shingleLength = args(0).toInt
+  val corpusSequence = args(1)
+  val outputLocation = args(2)
 
-  val conf = new SparkConf().setAppName("Brute Force Document Clusters")
+  val conf = new SparkConf().setAppName("Shingle Counter")
   val sc = new SparkContext(conf)
 
   sc.setLogLevel("WARN")
+
+  val shingleLengthBroadcast = sc.broadcast(shingleLength)
 
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 
   val shinglesRDD = corpusRDD.flatMap { case(id, text) =>
-    val minHash = new MinHashDocument(text)
+    val minHash = new MinHashDocument(text, shingleLength=shingleLengthBroadcast.value)
     minHash.generateShingles.map(shingle => (shingle, BigInt(1)))  
   }.reduceByKey(_ + _)
 
   val shingleCount = shinglesRDD.count()
-  println(s"Number of distinct shingles: $shingleCount")
+  println(s"Number of distinct ${shingleLength}-shingles: $shingleCount")
 
   shinglesRDD.keys.saveAsTextFile(outputLocation)
 
