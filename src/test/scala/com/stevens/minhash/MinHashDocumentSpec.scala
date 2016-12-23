@@ -28,31 +28,32 @@ TimeWarner is to restate its accounts as part of efforts to resolve an inquiry i
 
   it should "generate shingles" in {
     val minHash = new MinHashDocument(testText)
-    assert(minHash.shingles != null)
-    assert(!minHash.shingles.isEmpty)
+    val shingles = minHash.generateShingles
+    assert(shingles != null && !shingles.isEmpty)
   }
 
   it should "generate shingles according to its args" in {
     val minHash = new MinHashDocument(veryShortDocument, shingleLength=2)
-    assert(minHash.shingles.size == 5)
+    assert(minHash.generateShingles.toList.size == 5)
   }
 
   it should "have exact similarity for the same document" in {
     val minHash1 = new MinHashDocument(testText)
     val minHash2 = new MinHashDocument(testText)
-    assert(minHash1.shingleSimilarity(minHash2) == 1.0D)
+    assert(MinHashDocument.jaccardSimilarity(minHash1.generateShingles.toList, minHash2.generateShingles.toList) == 1.0D)
   }
 
   it should "have little to no similarity with a different document" in {
     val minHash1 = new MinHashDocument(testText, shingleLength=2)
     val minHash2 = new MinHashDocument(veryShortDocument, shingleLength=2)
-    assert(minHash1.shingleSimilarity(minHash2) < 0.25D)
+    assert(MinHashDocument.jaccardSimilarity(minHash1.generateShingles.toList, minHash2.generateShingles.toList) < 0.25D)
   }
 
   it should "generate a minhash signature of correct length" in {
     val minHash = new MinHashDocument(veryShortDocument, shingleLength=2, signatureLength=100)
-    assert(minHash.signature != null)
-    assert(minHash.signature.length == 100)
+    val signature = minHash.generateMinHashSignature
+    assert(signature != null)
+    assert(signature.length == 100)
   }
 }
 

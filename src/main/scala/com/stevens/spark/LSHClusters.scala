@@ -31,14 +31,14 @@ object LSHClusters extends App {
 
   val minHashRDD = corpusRDD.map { case(id, text) =>
     val minHash = new MinHashDocument(text, signatureLength=signatureLengthBroadcast.value)
-    (id, minHash.signature)
+    (id, minHash.generateMinHashSignature)
   }
 
   val bucketsRDD = minHashRDD.flatMap { case(id, signature) =>
     signature.grouped(rowsBroadcast.value).zipWithIndex.map { case(band, bandIndex) => 
-      ((bandIndex, band.toList.hashCode), Set((id, signature.toSet))) 
+      ((bandIndex, band.toList.hashCode), collection.mutable.Set((id, signature.toSet))) 
     }
-  }.reduceByKey(_ ++ _)
+  }.reduceByKey(_ ++= _)
 
   val candidatePairsRDD = bucketsRDD.flatMap { case((bandIndex, bucketId), cluster) => 
     cluster.flatMap(doc1 => cluster.map( doc2 => (doc1, doc2))).map(pair => (pair, 1))

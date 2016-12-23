@@ -22,7 +22,7 @@ object BruteForceClusters extends App {
 
   val minHashCorpusRDD = corpusRDD.map { case(id, text) =>
     val minHash = new MinHashDocument(text)
-    (id, minHash.signature.toSet)
+    (id, minHash.generateMinHashSignature.toSet)
   }
 
   val candidatePairsRDD = minHashCorpusRDD.cartesian(minHashCorpusRDD)
