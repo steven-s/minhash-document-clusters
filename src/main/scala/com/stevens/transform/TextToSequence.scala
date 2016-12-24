@@ -25,9 +25,13 @@ object TextToSequence extends App {
 
     textFiles.foreach {
       file: File => {
-        val text = Source.fromFile(file).mkString
-        val key = file.getName
-        writer.append(new Text(key), new Text(text))
+        try {
+          val text = Source.fromFile(file).mkString
+          val key = file.getName
+          writer.append(new Text(key), new Text(text))
+        } catch {
+          case e: Exception => s"error reading/writing file ${e.getMessage}"
+        }
       }
     }
 

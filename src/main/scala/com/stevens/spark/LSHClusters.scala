@@ -9,10 +9,11 @@ import org.apache.hadoop.io._
 import com.stevens.minhash._
 
 object LSHClusters extends App {
-  val signatureLength: Int = args(0).toInt
-  val numberOfBuckets: Int = args(1).toInt
-  val corpusSequence: String = args(2)
-  val outputLocation: String = args(3)
+  val shingleLength: Int = args(0).toInt
+  val signatureLength: Int = args(1).toInt
+  val numberOfBuckets: Int = args(2).toInt
+  val corpusSequence: String = args(3)
+  val outputLocation: String = args(4)
   val rows: Int = signatureLength / numberOfBuckets
 
   println(s"Dividing $signatureLength length MinHashes into $numberOfBuckets bands of $rows rows")
@@ -24,13 +25,14 @@ object LSHClusters extends App {
   sc.setLogLevel("WARN")
 
   val rowsBroadcast = sc.broadcast(rows)
+  val shingleLengthBroadcast = sc.broadcast(shingleLength)
   val signatureLengthBroadcast = sc.broadcast(signatureLength)
 
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 
   val minHashRDD = corpusRDD.map { case(id, text) =>
-    val minHash = new MinHashDocument(text, signatureLength=signatureLengthBroadcast.value)
+    val minHash = new MinHashDocument(text, shingleLength=shingleLengthBroadcast.value, signatureLength=signatureLengthBroadcast.value)
     (id, minHash.generateMinHashSignature)
   }
 
