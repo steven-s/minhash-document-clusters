@@ -20,28 +20,48 @@ object BruteForceClusters extends App {
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 
+  // Generate minhashes for corpus
   val minHashCorpusRDD = corpusRDD.map { case(id, text) =>
     val minHash = new MinHashDocument(text)
     (id, minHash.generateMinHashSignature.toSet)
   }
 
+  // Create pairs of all docs
   val candidatePairsRDD = minHashCorpusRDD.cartesian(minHashCorpusRDD)
-    .filter { case((k1, sig1), (k2, sig2)) => !k1.equalsIgnoreCase(k2) }.cache()
+    .map { case(doc1, doc2) => Set(doc1, doc2) }
+    .map(pair => (pair, 1))
+    .reduceByKey(_ + _)
+    .map { case(pair, count) => pair }.cache()
 
   val comparisonCount = candidatePairsRDD.count()
   println(s"Number of comparisons: $comparisonCount")
 
-  val reducedPairsRDD = candidatePairsRDD.map { case((k1, v1), (k2, v2)) => ((k1, v1), Set((k2, v2))) }.reduceByKey(_ ++ _)
-
-  val matchingClustersRDD = reducedPairsRDD.map { case((k1, sig1), possibleMatches) =>
-    val matchingDocs = possibleMatches.map { case(k2, sig2) =>
-      (k2, MinHashDocument.jaccardSimilarity(sig1, sig2))
-    }.filter { case(k2, score) => score > 0.8D }.map { case(k2, score) => k2 }
-    matchingDocs.toSet + k1
+  // Look through all the pairs for matches
+  val matchingPairsRDD = candidatePairsRDD.map { pair =>
+    if (pair.size == 1) {
+      (pair, 1.0D)
+    } else {
+      (pair, MinHashDocument.jaccardSimilarity(pair.head._2, pair.tail.head._2))
+    }
+  }.filter { case(pair, score) => 
+    score > 0.8D 
+  }.map { case(pair, score) => 
+    pair.map { case(key, signature) => key }
   }
 
-  val reducedClustersRDD = matchingClustersRDD.map(cluster => (cluster.hashCode, cluster)).reduceByKey(_ ++ _)
-  reducedClustersRDD.map { case(clusterId, cluster) => cluster.mkString(" ") }.saveAsTextFile(outputLocation)
+  // Assemble matching pairs into clusters
+  val clustersRDD = matchingPairsRDD.flatMap { pair =>
+    if (pair.size == 1) {
+      Set((pair.head, collection.mutable.Set(pair.head)))
+    } else {
+      Set((pair.head, collection.mutable.Set(pair.tail.head)), (pair.tail.head, collection.mutable.Set(pair.head)))
+    }
+  }.reduceByKey(_ ++= _).map { case(key, cluster) =>
+    val completeCluster = cluster += key
+    (completeCluster, 1)
+  }.reduceByKey(_ + _).map { case(cluster, count) => cluster }
+ 
+  clustersRDD.map(cluster => cluster.mkString(" ")).saveAsTextFile(outputLocation)
 
   sc.stop()
 }
