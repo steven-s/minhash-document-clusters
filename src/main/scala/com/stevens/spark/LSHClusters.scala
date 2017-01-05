@@ -40,9 +40,9 @@ object LSHClusters extends App {
   // Generate our pairs according to LSH for MinHash
   val bucketsRDD = minHashRDD.flatMap { case(id, signature) =>
     signature.grouped(rowsBroadcast.value).zipWithIndex.map { case(band, bandIndex) => 
-      ((bandIndex, band.toList.hashCode), collection.mutable.Set((id, signature.toSet))) 
+      ((bandIndex, band.toList.hashCode), (id, signature.toSet))
     }
-  }.reduceByKey(_ ++= _)
+  }.aggregateByKey(collection.mutable.Iterable.empty[Tuple2[String, Set[Int]]])((s, v) => s ++ Iterable(v), (i1, i2) => i1 ++ i2)
 
   val candidatePairsRDD = bucketsRDD.flatMap { case((bandIndex, bucketId), cluster) => 
     cluster.flatMap(doc1 => cluster.map(doc2 => Set(doc1, doc2)))
@@ -67,11 +67,11 @@ object LSHClusters extends App {
   // Assemble matching pairs into clusters
   val clustersRDD = matchingPairsRDD.flatMap { pair =>
     if (pair.size == 1) {
-      Set((pair.head, collection.mutable.Set(pair.head)))
+      Set((pair.head, pair.head))
     } else {
-      Set((pair.head, collection.mutable.Set(pair.tail.head)), (pair.tail.head, collection.mutable.Set(pair.head)))
+      Set((pair.head, pair.tail.head), (pair.tail.head, pair.head))
     }
-  }.reduceByKey(_ ++= _).map { case(key, cluster) =>
+  }.aggregateByKey(collection.mutable.Set.empty[String])((s, v) => s += v, (h1, h2) => h1 ++= h2).map { case(key, cluster) =>
     val completeCluster = cluster += key
     (completeCluster, 1)
   }.reduceByKey(_ + _).map { case(cluster, count) => cluster }

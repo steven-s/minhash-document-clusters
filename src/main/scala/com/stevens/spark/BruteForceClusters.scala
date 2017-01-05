@@ -52,11 +52,11 @@ object BruteForceClusters extends App {
   // Assemble matching pairs into clusters
   val clustersRDD = matchingPairsRDD.flatMap { pair =>
     if (pair.size == 1) {
-      Set((pair.head, collection.mutable.Set(pair.head)))
+      Set((pair.head, pair.head))
     } else {
-      Set((pair.head, collection.mutable.Set(pair.tail.head)), (pair.tail.head, collection.mutable.Set(pair.head)))
+      Set((pair.head, pair.tail.head), (pair.tail.head, pair.head))
     }
-  }.reduceByKey(_ ++= _).map { case(key, cluster) =>
+  }.aggregateByKey(collection.mutable.Set.empty[String])((s, v) => s += v, (h1, h2) => h1 ++= h2).map { case(key, cluster) =>
     val completeCluster = cluster += key
     (completeCluster, 1)
   }.reduceByKey(_ + _).map { case(cluster, count) => cluster }
