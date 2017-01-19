@@ -15,8 +15,6 @@ object UnigramCounter extends App {
   val conf = new SparkConf().setAppName("Unigram Counter")
   val sc = new SparkContext(conf)
 
-  sc.setLogLevel("WARN")
-
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 

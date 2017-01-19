@@ -15,8 +15,6 @@ object BruteForceClusters extends App {
   val conf = new SparkConf().setAppName("Brute Force Document Clusters")
   val sc = new SparkContext(conf)
 
-  sc.setLogLevel("WARN")
-
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
     .map { case(id, text) => (id.toString, text.toString) }
 

@@ -16,8 +16,6 @@ object ShingleCounter extends App {
   val conf = new SparkConf().setAppName("Shingle Counter")
   val sc = new SparkContext(conf)
 
-  sc.setLogLevel("WARN")
-
   val shingleLengthBroadcast = sc.broadcast(shingleLength)
 
   val corpusRDD = sc.sequenceFile(corpusSequence, classOf[Text], classOf[Text])
