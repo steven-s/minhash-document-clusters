@@ -42,11 +42,11 @@ object LSHClusters extends App {
     signature.grouped(rowsBroadcast.value).zipWithIndex.map { case(band, bandIndex) => 
       ((bandIndex, band.toList.hashCode), (id, signature.toSet))
     }
-  }.aggregateByKey(collection.mutable.Iterable.empty[Tuple2[String, Set[Int]]])((s, v) => s ++ Iterable(v), (i1, i2) => i1 ++ i2)
+  }.aggregateByKey(collection.mutable.Iterable.empty[(String, Set[Int])])((s, v) => s ++ Iterable(v), (i1, i2) => i1 ++ i2)
 
   val candidatePairsRDD = bucketsRDD.flatMap { case((bandIndex, bucketId), cluster) => 
     cluster.flatMap(doc1 => cluster.map(doc2 => Set(doc1, doc2)))
-  }.map(pair => (pair, 1)).reduceByKey(_ + _).map { case(pair, count) => pair }.cache()
+  }.distinct().cache()
 
   val comparisonCount = candidatePairsRDD.count()
   println(s"Number of comparisons: $comparisonCount")
@@ -72,9 +72,8 @@ object LSHClusters extends App {
       Set((pair.head, pair.tail.head), (pair.tail.head, pair.head))
     }
   }.aggregateByKey(collection.mutable.Set.empty[String])((s, v) => s += v, (h1, h2) => h1 ++= h2).map { case(key, cluster) =>
-    val completeCluster = cluster += key
-    (completeCluster, 1)
-  }.reduceByKey(_ + _).map { case(cluster, count) => cluster }
+    cluster += key
+  }.distinct()
   
   clustersRDD.map(cluster => cluster.mkString(" ")).saveAsTextFile(outputLocation)
   
