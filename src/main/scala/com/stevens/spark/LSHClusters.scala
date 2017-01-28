@@ -3,7 +3,6 @@ package com.stevens.spark
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
-import org.apache.spark.graphx._
 
 import org.apache.hadoop.io._
 
@@ -61,22 +60,16 @@ object LSHClusters extends App {
     score > 0.8D 
   }.map { case(pair, score) => 
     if (pair.size == 1) {
-      ((pair.head._1, pair.head._1), score)
+      (pair.head._1, pair.head._1)
     } else {
-      ((pair.head._1, pair.tail.head._1), score)
+      (pair.head._1, pair.tail.head._1)
     }
   }
 
-  // create graph and join complete subgraphs into clusters
-  val verticiesRDD = corpusRDD.map { case (id, text) => (id.hashCode().toLong, id) }
-  val edgesRDD = matchingPairsRDD.map { case ((id1, id2), score) =>
-    Edge(id1.hashCode().toLong, id2.hashCode.toLong, score)
-  }
-
-  val graph = Graph(verticiesRDD, edgesRDD)
-
-  val clustersRDD = graph.collectNeighbors(EdgeDirection.Either).map { case (vertexId, verticies) => 
-    verticies.map { case(id, idString) => idString }.toSet
+  val clustersRDD = matchingPairsRDD.flatMap { case (doc1, doc2) =>
+    Set((doc1, doc2), (doc2, doc1))
+  }.aggregateByKey(collection.mutable.Set.empty[String])((s, v) => s += v, (h1, h2) => h1 ++= h2).map { case(key, cluster) =>
+     cluster += key
   }.distinct()
 
   clustersRDD.map(cluster => cluster.mkString(" ")).saveAsTextFile(outputLocation)
