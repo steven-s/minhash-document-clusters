@@ -37,13 +37,13 @@ TimeWarner is to restate its accounts as part of efforts to resolve an inquiry i
     assert(minHash.generateShingles.toList.size == 5)
   }
 
-  it should "have exact similarity for the same document" in {
+  it should "have exact jaccard similarity for the same document" in {
     val minHash1 = new MinHashDocument(testText)
     val minHash2 = new MinHashDocument(testText)
     assert(MinHashDocument.jaccardSimilarity(minHash1.generateShingles.toList, minHash2.generateShingles.toList) == 1.0D)
   }
 
-  it should "have little to no similarity with a different document" in {
+  it should "have little to no jaccard similarity with a different document" in {
     val minHash1 = new MinHashDocument(testText, shingleLength=2)
     val minHash2 = new MinHashDocument(veryShortDocument, shingleLength=2)
     assert(MinHashDocument.jaccardSimilarity(minHash1.generateShingles.toList, minHash2.generateShingles.toList) < 0.25D)
@@ -55,5 +55,19 @@ TimeWarner is to restate its accounts as part of efforts to resolve an inquiry i
     assert(signature != null)
     assert(signature.length == 100)
   }
+
+  it should "have exact minhash similarity for the same document" in {
+    val minHash1 = new MinHashDocument(testText)
+    val minHash2 = new MinHashDocument(testText)
+    assert(MinHashDocument.minhashSimilarity(minHash1.generateMinHashSignature, minHash2.generateMinHashSignature) == 1.0D)
+  }
+
+  it should "have little to no minhash similarity with a different document" in {
+    val minHash1 = new MinHashDocument(testText, shingleLength=2)
+    val minHash2 = new MinHashDocument(veryShortDocument, shingleLength=2)
+    assert(MinHashDocument.minhashSimilarity(minHash1.generateMinHashSignature, minHash2.generateMinHashSignature) < 0.25D)
+  }
+
 }
+
 

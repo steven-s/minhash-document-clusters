@@ -38,9 +38,9 @@ object LSHClusters extends App {
   // Generate our pairs according to LSH for MinHash
   val bucketsRDD = minHashRDD.flatMap { case(id, signature) =>
     signature.grouped(rowsBroadcast.value).zipWithIndex.map { case(band, bandIndex) => 
-      ((bandIndex, band.toList.hashCode), (id, signature.toSet))
+      ((bandIndex, band.toList.hashCode), (id, signature))
     }
-  }.aggregateByKey(collection.mutable.Iterable.empty[(String, Set[Int])])((s, v) => s ++ Iterable(v), (i1, i2) => i1 ++ i2)
+  }.aggregateByKey(collection.mutable.Iterable.empty[(String, Array[Int])])((s, v) => s ++ Iterable(v), (i1, i2) => i1 ++ i2)
 
   val candidatePairsRDD = bucketsRDD.flatMap { case((bandIndex, bucketId), cluster) => 
     cluster.flatMap(doc1 => cluster.map(doc2 => Set(doc1, doc2)))
@@ -54,7 +54,7 @@ object LSHClusters extends App {
     if (pair.size == 1) {
       (pair, 1.0D)
     } else {
-      (pair, MinHashDocument.jaccardSimilarity(pair.head._2, pair.tail.head._2)) 
+      (pair, MinHashDocument.minhashSimilarity(pair.head._2, pair.tail.head._2)) 
     }
   }.filter { case(pair, score) => 
     score > 0.8D 

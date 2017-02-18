@@ -21,7 +21,7 @@ object BruteForceClusters extends App {
   // Generate minhashes for corpus
   val minHashCorpusRDD = corpusRDD.map { case(id, text) =>
     val minHash = new MinHashDocument(text)
-    (id, minHash.generateMinHashSignature.toSet)
+    (id, minHash.generateMinHashSignature)
   }
 
   // Create pairs of all docs
@@ -39,7 +39,7 @@ object BruteForceClusters extends App {
     if (pair.size == 1) {
       (pair, 1.0D)
     } else {
-      (pair, MinHashDocument.jaccardSimilarity(pair.head._2, pair.tail.head._2))
+      (pair, MinHashDocument.minhashSimilarity(pair.head._2, pair.tail.head._2))
     }
   }.filter { case(pair, score) => 
     score > 0.8D 
