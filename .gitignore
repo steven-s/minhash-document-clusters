@@ -17,5 +17,9 @@ project/plugins/project/
 .scala_dependencies
 .worksheet
 
+# IDEA specific
+.idea
+*.iml
+
 # Project specific
 data/
